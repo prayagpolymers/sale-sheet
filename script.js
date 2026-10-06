@@ -1,102 +1,41 @@
-const state = { rows: [], filtered: [] };
-const $ = id => document.getElementById(id);
+const SHEET_ID="1QIpcfgOVCFjcCmgU_DXKn8h7Bfa8rm2q2wB2HneTvKs",SHEET_NAME="Sheet1";
+const state={rows:[],filtered:[]}; const $=id=>document.getElementById(id);
+const clean=v=>v==null?"":String(v).trim();
+const num=v=>{let n=Number(String(v??"").replace(/,/g,""));return Number.isFinite(n)?n:0};
+const money=n=>new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:0}).format(n||0);
+function esc(s){return clean(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function unique(k){return [...new Set(state.rows.map(r=>clean(r[k])).filter(Boolean))].sort((a,b)=>a.localeCompare(b))}
+function fill(id,k){unique(k).forEach(v=>{let o=document.createElement("option");o.value=v;o.textContent=v;$(id).appendChild(o)})}
+function parseCSV(t){let a=[],r=[],f="",q=false;for(let i=0;i<t.length;i++){let c=t[i],n=t[i+1];if(c=='"'){if(q&&n=='"'){f+='"';i++}else q=!q}else if(c==","&&!q){r.push(f);f=""}else if((c=="\n"||c=="\r")&&!q){if(c=="\r"&&n=="\n")i++;r.push(f);if(r.some(x=>x!==""))a.push(r);r=[];f=""}else f+=c}if(f!==""||r.length){r.push(f);if(r.some(x=>x!==""))a.push(r)}let h=a.shift().map(clean);return a.map(x=>Object.fromEntries(h.map((k,i)=>[k,x[i]??""])))}
 
-function clean(v){ return v == null ? "" : String(v).trim(); }
-function money(n){ return new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:0}).format(n||0); }
-function num(v){ const n=Number(String(v).replace(/,/g,"")); return Number.isFinite(n)?n:0; }
-function unique(key){
-  return [...new Set(state.rows.map(r=>clean(r[key])).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
-}
-function fill(id,key){
-  const el=$(id); unique(key).forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;el.appendChild(o);});
-}
-function escapeHtml(s){return clean(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
+async function load(){try{let u=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`,res=await fetch(u);if(!res.ok)throw Error();state.rows=parseCSV(await res.text());fill("month","M0NTH");fill("stateHead","STATE HEAD A ");fill("state","STATE");fill("group","GROUP");fill("station","STATION");fill("type","TYPE");fill("fy","FY-2025-26");state.filtered=state.rows;render()}catch(e){$("status").textContent="Data load failed";alert("Google Sheet load नहीं हो रहा। Share → Anyone with the link → Viewer करें।")}}
 
-function apply(){
-  const m=$("month").value,h=$("stateHead").value,s=$("state").value,g=$("group").value,q=$("search").value.toLowerCase().trim();
-  state.filtered=state.rows.filter(r=>{
-    if(m && clean(r["M0NTH"])!==m)return false;
-    if(h && clean(r["STATE HEAD A "])!==h)return false;
-    if(s && clean(r["STATE"])!==s)return false;
-    if(g && clean(r["GROUP"])!==g)return false;
-    if(q){
-      const hay=[r["CUSTOMER"],r["CODE"],r["INVOICE NO"],r["STATION"]].map(clean).join(" ").toLowerCase();
-      if(!hay.includes(q))return false;
-    }
-    return true;
-  });
-  render();
-}
+function dateVal(v){let s=clean(v),d=new Date(s);if(!isNaN(d))return d;let m=s.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})/);return m?new Date(+m[3]<100?2000+(+m[3]):+m[3],+m[2]-1,+m[1]):null}
+function apply(){let vals=["month","stateHead","state","group","station","type","fy"].map(x=>$(x).value),q=$("search").value.toLowerCase().trim(),fd=$("fromDate").value,td=$("toDate").value;
+state.filtered=state.rows.filter(r=>{if(vals[0]&&clean(r["M0NTH"])!==vals[0])return false;if(vals[1]&&clean(r["STATE HEAD A "])!==vals[1])return false;if(vals[2]&&clean(r["STATE"])!==vals[2])return false;if(vals[3]&&clean(r["GROUP"])!==vals[3])return false;if(vals[4]&&clean(r["STATION"])!==vals[4])return false;if(vals[5]&&clean(r["TYPE"])!==vals[5])return false;if(vals[6]&&clean(r["FY-2025-26"])!==vals[6])return false;
+let d=dateVal(r["DATE"]);if(fd&&(!d||d<new Date(fd)))return false;if(td&&(!d||d>new Date(td+"T23:59:59")))return false;
+if(q&&!([r["CUSTOMER"],r["CODE"],r["INVOICE NO"],r["STATION"],r["STATE HEAD A "]].map(clean).join(" ").toLowerCase().includes(q)))return false;return true});render()}
 
-function render(){
-  const rows=state.filtered;
-  const sales=rows.reduce((a,r)=>a+num(r["AMOUNT"]),0);
-  const qty=rows.reduce((a,r)=>a+num(r["QTY"]),0);
-  const inv=new Set(rows.map(r=>clean(r["INVOICE NO"])).filter(Boolean)).size;
-  const cust=new Set(rows.map(r=>clean(r["CUSTOMER"])).filter(Boolean)).size;
-  $("sales").textContent=money(sales); $("qty").textContent=qty.toLocaleString("en-IN");
-  $("invoices").textContent=inv.toLocaleString("en-IN"); $("customers").textContent=cust.toLocaleString("en-IN");
-  $("status").textContent=`${rows.length.toLocaleString("en-IN")} records selected`;
+function aggregate(rows,key){let o={};rows.forEach(r=>{let k=clean(r[key])||"Blank";if(!o[k])o[k]={sales:0,qty:0,inv:new Set(),customers:new Set()};o[k].sales+=num(r["AMOUNT"]);o[k].qty+=num(r["QTY"]);if(clean(r["INVOICE NO"]))o[k].inv.add(clean(r["INVOICE NO"]));if(clean(r["CUSTOMER"]))o[k].customers.add(clean(r["CUSTOMER"]))});return Object.entries(o).sort((a,b)=>b[1].sales-a[1].sales)}
+function report(data,limit=100){return `<table class="mini"><thead><tr><th>Name</th><th>Sales</th><th>Qty</th><th>Invoices</th><th>Customers</th></tr></thead><tbody>`+data.slice(0,limit).map(([k,v])=>`<tr><td>${esc(k)}</td><td>${money(v.sales)}</td><td>${v.qty.toLocaleString("en-IN")}</td><td>${v.inv.size.toLocaleString("en-IN")}</td><td>${v.customers.size.toLocaleString("en-IN")}</td></tr>`).join("")+`</tbody></table>`}
 
-  const monthMap={}, headMap={};
-  rows.forEach(r=>{
-    const m=clean(r["M0NTH"])||"Blank", h=clean(r["STATE HEAD A "])||"Blank", a=num(r["AMOUNT"]);
-    monthMap[m]=(monthMap[m]||0)+a; headMap[h]=(headMap[h]||0)+a;
-  });
-  $("monthTable").innerHTML=mini(monthMap);
-  $("headTable").innerHTML=mini(headMap);
+function fyCompare(rows,groupKey){let m={};rows.forEach(r=>{let g=clean(r[groupKey])||"Blank",fy=clean(r["FY-2025-26"])||"Blank";m[g]??={};m[g][fy]=(m[g][fy]||0)+num(r["AMOUNT"])});let fys=[...new Set(rows.map(r=>clean(r["FY-2025-26"])).filter(Boolean))];return `<table class="mini"><thead><tr><th>${groupKey}</th>${fys.map(x=>`<th>${esc(x)}</th>`).join("")}<th>Total</th></tr></thead><tbody>`+Object.entries(m).sort((a,b)=>Object.values(b[1]).reduce((x,y)=>x+y,0)-Object.values(a[1]).reduce((x,y)=>x+y,0)).slice(0,100).map(([k,v])=>{let t=fys.reduce((s,f)=>s+(v[f]||0),0);return `<tr><td>${esc(k)}</td>${fys.map(f=>`<td>${money(v[f]||0)}</td>`).join("")}<td>${money(t)}</td></tr>`}).join("")+`</tbody></table>`}
 
-  const max=5000;
-  $("dataBody").innerHTML=rows.slice(0,max).map(r=>`<tr>
-    <td>${escapeHtml(r["INVOICE NO"])}</td><td>${escapeHtml(r["DATE"])}</td>
-    <td>${escapeHtml(r["CUSTOMER"])}</td><td>${escapeHtml(r["CODE"])}</td>
-    <td>${escapeHtml(r["M0NTH"])}</td><td>${num(r["QTY"]).toLocaleString("en-IN")}</td>
-    <td>${money(num(r["SALE RATE"]))}</td><td>${money(num(r["AMOUNT"]))}</td>
-    <td>${escapeHtml(r["GROUP"])}</td><td>${escapeHtml(r["STATE"])}</td>
-    <td>${escapeHtml(r["STATE HEAD A "])}</td></tr>`).join("");
-  $("tableNote").textContent=rows.length>max ? `Showing first ${max.toLocaleString("en-IN")} of ${rows.length.toLocaleString("en-IN")} filtered records.` : `Showing all ${rows.length.toLocaleString("en-IN")} filtered records.`;
-}
-function mini(obj){
-  const arr=Object.entries(obj).sort((a,b)=>b[1]-a[1]);
-  return `<table class="mini"><thead><tr><th>Name</th><th>Sales</th></tr></thead><tbody>`+
-    arr.slice(0,30).map(x=>`<tr><td>${escapeHtml(x[0])}</td><td>${money(x[1])}</td></tr>`).join("")+
-    `</tbody></table>`;
-}
+function render(){let r=state.filtered,sales=r.reduce((a,x)=>a+num(x["AMOUNT"]),0),qty=r.reduce((a,x)=>a+num(x["QTY"]),0),inv=new Set(r.map(x=>clean(x["INVOICE NO"])).filter(Boolean)).size,cust=new Set(r.map(x=>clean(x["CUSTOMER"])).filter(Boolean)).size;
+$("sales").textContent=money(sales);$("qty").textContent=qty.toLocaleString("en-IN");$("invoices").textContent=inv.toLocaleString("en-IN");$("customers").textContent=cust.toLocaleString("en-IN");$("avgInvoice").textContent=money(inv?sales/inv:0);$("status").textContent=`${r.length.toLocaleString("en-IN")} rows | ${inv.toLocaleString("en-IN")} unique invoices`;
+let heads=aggregate(r,"STATE HEAD A "),states=aggregate(r,"STATE"),groups=aggregate(r,"GROUP"),parties=aggregate(r,"CUSTOMER"),items=aggregate(r,"CODE"),months=aggregate(r,"M0NTH");
+$("monthTable").innerHTML=report(months,30);$("headTable").innerHTML=report(heads,30);$("groupTable").innerHTML=report(groups,30);$("partyTopTable").innerHTML=report(parties,20);
+$("stateHeadFull").innerHTML=fyCompare(r,"STATE HEAD A ");$("stateFull").innerHTML=fyCompare(r,"STATE");$("groupFull").innerHTML=fyCompare(r,"GROUP");$("partyFull").innerHTML=fyCompare(r,"CUSTOMER");$("itemFull").innerHTML=fyCompare(r,"CODE");$("monthlyFull").innerHTML=fyCompare(r,"M0NTH");
+let seen=new Set(),rows=[];r.forEach(x=>{let k=clean(x["INVOICE NO"]);if(!k||seen.has(k))return;seen.add(k);rows.push(x)});
+$("dataBody").innerHTML=rows.slice(0,5000).map(x=>`<tr><td><a href="#" class="invoice-link" data-invoice="${esc(x["INVOICE NO"])}">${esc(x["INVOICE NO"])}</a></td><td>${esc(x["DATE"])}</td><td>${esc(x["CUSTOMER"])}</td><td>${esc(x["CODE"])}</td><td>${esc(x["M0NTH"])}</td><td>${num(x["QTY"]).toLocaleString("en-IN")}</td><td>${money(num(x["SALE RATE"]))}</td><td>${money(num(x["AMOUNT"]))}</td><td>${esc(x["GROUP"])}</td><td>${esc(x["STATE"])}</td><td>${esc(x["STATE HEAD A "])}</td></tr>`).join("");
+$("tableNote").textContent=`Showing ${Math.min(rows.length,5000).toLocaleString("en-IN")} unique invoices. Click an Invoice No. to view full invoice details.`;
+document.querySelectorAll(".invoice-link").forEach(a=>a.onclick=e=>{e.preventDefault();showInvoice(a.dataset.invoice)})}
 
-const SHEET_ID = "1QIpcfgOVCFjcCmgU_DXKn8h7Bfa8rm2q2wB2HneTvKs";
-const SHEET_NAME = "Sheet1";
+function showInvoice(no){let rows=state.filtered.filter(r=>clean(r["INVOICE NO"])===clean(no));if(!rows.length)return;
+let first=rows[0],total=rows.reduce((s,r)=>s+num(r["AMOUNT"]),0),qty=rows.reduce((s,r)=>s+num(r["QTY"]),0);
+$("invoiceModal").innerHTML=`<div class="modal-card"><button class="close" onclick="$('invoiceModal').style.display='none'">×</button><h2>Invoice: ${esc(no)}</h2><div class="invoice-meta"><b>Customer:</b> ${esc(first["CUSTOMER"])} &nbsp; <b>Date:</b> ${esc(first["DATE"])} &nbsp; <b>State:</b> ${esc(first["STATE"])} &nbsp; <b>State Head:</b> ${esc(first["STATE HEAD A "])}</div><table class="mini"><thead><tr><th>Item Code</th><th>Group</th><th>Qty</th><th>Sale Rate</th><th>Sale Value</th><th>Month</th><th>Type</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r["CODE"])}</td><td>${esc(r["GROUP"])}</td><td>${num(r["QTY"]).toLocaleString("en-IN")}</td><td>${money(num(r["SALE RATE"]))}</td><td>${money(num(r["AMOUNT"]))}</td><td>${esc(r["M0NTH"])}</td><td>${esc(r["TYPE"])}</td></tr>`).join("")}</tbody></table><div class="invoice-total"><b>Total Qty: ${qty.toLocaleString("en-IN")}</b><b>Total Sale Value: ${money(total)}</b></div></div>`;$("invoiceModal").style.display="flex"}
 
-async function load(){
-  try{
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
-    const res = await fetch(url);
-    if(!res.ok) throw new Error("Google Sheet could not be read");
-    const text = await res.text();
-    state.rows = parseCSV(text);
-    if(!state.rows.length) throw new Error("No rows found");
-    fill("month","M0NTH");fill("stateHead","STATE HEAD A ");fill("state","STATE");fill("group","GROUP");
-    state.filtered=state.rows;render();
-    $("status").textContent=`${state.rows.length.toLocaleString("en-IN")} records loaded from Google Sheet`;
-  }catch(e){
-    console.error(e);
-    $("status").textContent="Google Sheet load failed";
-    alert("Google Sheet data load nahi ho raha. Sheet ko Share → Anyone with the link → Viewer karein, aur Sheet tab ka naam Sheet1 hi rakhein.");
-  }
-}
-
-function parseCSV(text){
-  const lines=[];let row=[],field="",quoted=false;
-  for(let i=0;i<text.length;i++){
-    const c=text[i],n=text[i+1];
-    if(c==='"'){if(quoted&&n==='"'){field+='"';i++;}else quoted=!quoted;}
-    else if(c===','&&!quoted){row.push(field);field="";}
-    else if((c==='\n'||c==='\r')&&!quoted){if(c==='\r'&&n==='\n')i++;row.push(field);if(row.some(x=>x!==""))lines.push(row);row=[];field="";}
-    else field+=c;
-  }
-  if(field!==""||row.length){row.push(field);if(row.some(x=>x!==""))lines.push(row);}
-  const headers=lines.shift().map(clean);
-  return lines.map(a=>Object.fromEntries(headers.map((h,i)=>[h,a[i]??""])));
-}
-["month","stateHead","state","group","search"].forEach(id=>$(id).addEventListener("input",apply));
-$("reset").onclick=()=>{["month","stateHead","state","group","search"].forEach(id=>$(id).value="");apply();};
+["month","stateHead","state","group","station","type","fy","search","fromDate","toDate"].forEach(id=>$(id).addEventListener("input",apply));
+$("reset").onclick=()=>{["month","stateHead","state","group","station","type","fy","search","fromDate","toDate"].forEach(id=>$(id).value="");apply()};
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));document.querySelectorAll(".tabpage").forEach(x=>x.classList.remove("active"));b.classList.add("active");$(b.dataset.tab).classList.add("active")});
 load();

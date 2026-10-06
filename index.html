@@ -2,17 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>State Head Sales Dashboard 2026-27</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prayag Sales Dashboard 2026-27</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header>
-  <div>
-    <h1>Sales Dashboard</h1>
-    <p>State Head Sale 2026-27</p>
-  </div>
-  <div class="status" id="status">Loading data…</div>
+  <div><h1>PRAYAG SALES DASHBOARD</h1><p>State Head Sale 2026-27</p></div>
+  <div id="status">Loading…</div>
 </header>
 
 <section class="filters">
@@ -20,43 +17,54 @@
   <select id="stateHead"><option value="">All State Heads</option></select>
   <select id="state"><option value="">All States</option></select>
   <select id="group"><option value="">All Groups</option></select>
-  <input id="search" placeholder="Search customer / code / invoice">
+  <select id="station"><option value="">All Stations</option></select><select id="type"><option value="">All Types</option></select><select id="fy"><option value="">All FY</option></select>
+  <input id="fromDate" type="date" title="From Date">
+  <input id="toDate" type="date" title="To Date">
+  <input id="search" placeholder="Search Party / Item / Invoice">
   <button id="reset">Reset</button>
 </section>
 
 <section class="cards">
-  <div class="card"><span>Total Sales</span><strong id="sales">₹0</strong></div>
-  <div class="card"><span>Total Qty</span><strong id="qty">0</strong></div>
-  <div class="card"><span>Invoices</span><strong id="invoices">0</strong></div>
-  <div class="card"><span>Customers</span><strong id="customers">0</strong></div>
+<div class="card"><span>Total Sales</span><strong id="sales">₹0</strong></div>
+<div class="card"><span>Total Qty</span><strong id="qty">0</strong></div>
+<div class="card"><span>Invoices</span><strong id="invoices">0</strong></div>
+<div class="card"><span>Customers</span><strong id="customers">0</strong></div>
+<div class="card"><span>Avg Invoice Value</span><strong id="avgInvoice">₹0</strong></div>
 </section>
 
-<section class="grid">
-  <div class="panel">
-    <h2>Month-wise Sales</h2>
-    <div id="monthTable"></div>
-  </div>
-  <div class="panel">
-    <h2>State Head-wise Sales</h2>
-    <div id="headTable"></div>
-  </div>
+<nav class="tabs">
+<button class="tab active" data-tab="overview">Overview</button>
+<button class="tab" data-tab="stateHeadReport">State Head</button>
+<button class="tab" data-tab="stateReport">State</button>
+<button class="tab" data-tab="groupReport">Group</button>
+<button class="tab" data-tab="partyReport">Party</button>
+<button class="tab" data-tab="itemReport">Item</button>
+<button class="tab" data-tab="monthlyReport">Month</button>
+</nav>
+
+<main>
+<section id="overview" class="tabpage active">
+<div class="grid">
+<div class="panel"><h2>Month-wise Sales</h2><div id="monthTable"></div></div>
+<div class="panel"><h2>State Head-wise Sales</h2><div id="headTable"></div></div>
+<div class="panel"><h2>Group-wise Sales</h2><div id="groupTable"></div></div>
+<div class="panel"><h2>Top 20 Parties</h2><div id="partyTopTable"></div></div>
+</div>
 </section>
 
-<section class="panel">
-  <h2>Filtered Sales Data</h2>
-  <div class="table-wrap">
-    <table>
-      <thead><tr>
-        <th>Invoice</th><th>Date</th><th>Customer</th><th>Code</th>
-        <th>Month</th><th>Qty</th><th>Sale Rate</th><th>Amount</th>
-        <th>Group</th><th>State</th><th>State Head</th>
-      </tr></thead>
-      <tbody id="dataBody"></tbody>
-    </table>
-  </div>
-  <div class="note" id="tableNote"></div>
-</section>
+<section id="stateHeadReport" class="tabpage"><div class="panel"><h2>State Head Performance</h2><div id="stateHeadFull"></div></div></section>
+<section id="stateReport" class="tabpage"><div class="panel"><h2>State Sales Report</h2><div id="stateFull"></div></div></section>
+<section id="groupReport" class="tabpage"><div class="panel"><h2>Product Group Report</h2><div id="groupFull"></div></div></section>
+<section id="partyReport" class="tabpage"><div class="panel"><h2>Party / Customer Report</h2><div id="partyFull"></div></div></section>
+<section id="itemReport" class="tabpage"><div class="panel"><h2>Item / Code Report</h2><div id="itemFull"></div></div></section>
+<section id="monthlyReport" class="tabpage"><div class="panel"><h2>Monthly Sales Report</h2><div id="monthlyFull"></div></div></section>
 
+<section class="panel"><h2>Sales Transactions</h2>
+<div class="table-wrap"><table><thead><tr>
+<th>Invoice</th><th>Date</th><th>Party</th><th>Item Code</th><th>Month</th><th>Qty</th><th>Rate</th><th>Amount</th><th>Group</th><th>State</th><th>State Head</th>
+</tr></thead><tbody id="dataBody"></tbody></table></div>
+<div class="note" id="tableNote"></div></section>
+</main>
 <script src="script.js"></script>
-</body>
+<div id="invoiceModal" class="modal"></div></body>
 </html>
