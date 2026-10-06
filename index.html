@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>State Head Sales Dashboard 2026-27</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div>
+    <h1>Sales Dashboard</h1>
+    <p>State Head Sale 2026-27</p>
+  </div>
+  <div class="status" id="status">Loading data…</div>
+</header>
+
+<section class="filters">
+  <select id="month"><option value="">All Months</option></select>
+  <select id="stateHead"><option value="">All State Heads</option></select>
+  <select id="state"><option value="">All States</option></select>
+  <select id="group"><option value="">All Groups</option></select>
+  <input id="search" placeholder="Search customer / code / invoice">
+  <button id="reset">Reset</button>
+</section>
+
+<section class="cards">
+  <div class="card"><span>Total Sales</span><strong id="sales">₹0</strong></div>
+  <div class="card"><span>Total Qty</span><strong id="qty">0</strong></div>
+  <div class="card"><span>Invoices</span><strong id="invoices">0</strong></div>
+  <div class="card"><span>Customers</span><strong id="customers">0</strong></div>
+</section>
+
+<section class="grid">
+  <div class="panel">
+    <h2>Month-wise Sales</h2>
+    <div id="monthTable"></div>
+  </div>
+  <div class="panel">
+    <h2>State Head-wise Sales</h2>
+    <div id="headTable"></div>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Filtered Sales Data</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Invoice</th><th>Date</th><th>Customer</th><th>Code</th>
+        <th>Month</th><th>Qty</th><th>Sale Rate</th><th>Amount</th>
+        <th>Group</th><th>State</th><th>State Head</th>
+      </tr></thead>
+      <tbody id="dataBody"></tbody>
+    </table>
+  </div>
+  <div class="note" id="tableNote"></div>
+</section>
+
+<script src="script.js"></script>
+</body>
+</html>
