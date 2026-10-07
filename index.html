@@ -1,70 +1,95 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Prayag Sales Dashboard 2026-27</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prayag Sales & Accounting Portal</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
 <body>
-<header>
-  <div><h1>PRAYAG SALES DASHBOARD</h1><p>State Head Sale 2026-27</p></div>
-  <div id="status">Loading…</div>
-</header>
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <div class="brand-mark">P</div>
+      <h1>Prayag Portal</h1>
+      <p>Sales • Collection • Ledger • Outstanding</p>
+      <label>Login Role</label>
+      <select id="loginRole">
+        <option value="ADMIN">Admin</option>
+        <option value="STATE_HEAD">State Head</option>
+        <option value="PARTY">Party</option>
+      </select>
+      <label>User / Party Name</label>
+      <select id="loginUser"><option value="">All / Select</option></select>
+      <button id="enterPortal">Enter Portal</button>
+      <small>Prototype login. Secure production login should be connected to Firebase/Auth before publishing for multiple users.</small>
+    </div>
+  </div>
 
-<section class="filters">
-  <select id="month"><option value="">All Months</option></select>
-  <select id="stateHead"><option value="">All State Heads</option></select>
-  <select id="state"><option value="">All States</option></select>
-  <select id="group"><option value="">All Groups</option></select>
-  <select id="station"><option value="">All Stations</option></select><select id="type"><option value="">All Types</option></select><select id="fy"><option value="">All FY</option></select>
-  <input id="fromDate" type="date" title="From Date">
-  <input id="toDate" type="date" title="To Date">
-  <input id="search" placeholder="Search Party / Item / Invoice">
-  <button id="reset">Reset</button>
-</section>
+  <div id="app" class="hidden">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark small">P</div>
+        <div><strong>PRAYAG</strong><span>Sales & Accounting Portal</span></div>
+      </div>
+      <div class="top-actions">
+        <span id="roleBadge" class="badge">ADMIN</span>
+        <button id="refreshBtn" class="ghost">↻ Refresh</button>
+        <button id="logoutBtn" class="ghost">Logout</button>
+      </div>
+    </header>
 
-<section class="cards">
-<div class="card"><span>Total Sales</span><strong id="sales">₹0</strong></div>
-<div class="card"><span>Total Qty</span><strong id="qty">0</strong></div>
-<div class="card"><span>Invoices</span><strong id="invoices">0</strong></div>
-<div class="card"><span>Customers</span><strong id="customers">0</strong></div>
-<div class="card"><span>Avg Invoice Value</span><strong id="avgInvoice">₹0</strong></div>
-</section>
+    <div id="loading" class="loading hidden"><div class="spinner"></div> Loading live Google Sheet data…</div>
+    <main class="container">
+      <section class="filters card">
+        <div><label>FY</label><select id="fyFilter"><option value="ALL">All FY</option></select></div>
+        <div><label>Month</label><select id="monthFilter"><option value="ALL">All Months</option></select></div>
+        <div><label>State Head</label><select id="stateHeadFilter"><option value="ALL">All</option></select></div>
+        <div><label>State</label><select id="stateFilter"><option value="ALL">All</option></select></div>
+        <div><label>Party</label><select id="partyFilter"><option value="ALL">All</option></select></div>
+        <div><label>From</label><input id="fromDate" type="date"></div>
+        <div><label>To</label><input id="toDate" type="date"></div>
+        <div><label>Search</label><input id="searchBox" placeholder="Party / Invoice / State…"></div>
+      </section>
 
-<nav class="tabs">
-<button class="tab active" data-tab="overview">Overview</button>
-<button class="tab" data-tab="stateHeadReport">State Head</button>
-<button class="tab" data-tab="stateReport">State</button>
-<button class="tab" data-tab="groupReport">Group</button>
-<button class="tab" data-tab="partyReport">Party</button>
-<button class="tab" data-tab="itemReport">Item</button>
-<button class="tab" data-tab="monthlyReport">Month</button>
-</nav>
+      <section class="kpis">
+        <button class="kpi clickable" data-drill="sales"><span>This Month Sales</span><strong id="kpiSales">₹0</strong><small id="kpiSalesSub">Click for party-wise sales</small></button>
+        <button class="kpi clickable" data-drill="collection"><span>This Month Collection</span><strong id="kpiCollection">₹0</strong><small>Click for party-wise collection</small></button>
+        <button class="kpi clickable" data-drill="outstanding"><span>Total Outstanding</span><strong id="kpiOutstanding">₹0</strong><small>Click for party ledger & ageing</small></button>
+        <button class="kpi clickable" data-drill="overdue"><span>Overdue Outstanding</span><strong id="kpiOverdue">₹0</strong><small>91+ days</small></button>
+        <button class="kpi"><span>Credit Note</span><strong id="kpiCN">₹0</strong></button>
+        <button class="kpi"><span>Debit Note</span><strong id="kpiDN">₹0</strong></button>
+        <button class="kpi"><span>Sales Return</span><strong id="kpiReturn">₹0</strong></button>
+      </section>
 
-<main>
-<section id="overview" class="tabpage active">
-<div class="grid">
-<div class="panel"><h2>Month-wise Sales</h2><div id="monthTable"></div></div>
-<div class="panel"><h2>State Head-wise Sales</h2><div id="headTable"></div></div>
-<div class="panel"><h2>Group-wise Sales</h2><div id="groupTable"></div></div>
-<div class="panel"><h2>Top 20 Parties</h2><div id="partyTopTable"></div></div>
-</div>
-</section>
+      <section class="grid-2">
+        <div class="card chart-card"><div class="section-head"><h2>Month-wise Sales</h2><span>Gross ledger sales incl. 18% GST</span></div><canvas id="monthChart"></canvas></div>
+        <div class="card chart-card"><div class="section-head"><h2>Collection vs Sales</h2><span>Current FY</span></div><canvas id="collectionChart"></canvas></div>
+      </section>
 
-<section id="stateHeadReport" class="tabpage"><div class="panel"><h2>State Head Performance</h2><div id="stateHeadFull"></div></div></section>
-<section id="stateReport" class="tabpage"><div class="panel"><h2>State Sales Report</h2><div id="stateFull"></div></div></section>
-<section id="groupReport" class="tabpage"><div class="panel"><h2>Product Group Report</h2><div id="groupFull"></div></div></section>
-<section id="partyReport" class="tabpage"><div class="panel"><h2>Party / Customer Report</h2><div id="partyFull"></div></div></section>
-<section id="itemReport" class="tabpage"><div class="panel"><h2>Item / Code Report</h2><div id="itemFull"></div></div></section>
-<section id="monthlyReport" class="tabpage"><div class="panel"><h2>Monthly Sales Report</h2><div id="monthlyFull"></div></div></section>
+      <section class="grid-2">
+        <div class="card chart-card"><div class="section-head"><h2>State-wise Sales</h2></div><canvas id="stateChart"></canvas></div>
+        <div class="card chart-card"><div class="section-head"><h2>Outstanding Ageing</h2></div><canvas id="ageingChart"></canvas></div>
+      </section>
 
-<section class="panel"><h2>Sales Transactions</h2>
-<div class="table-wrap"><table><thead><tr>
-<th>Invoice</th><th>Date</th><th>Party</th><th>Item Code</th><th>Month</th><th>Qty</th><th>Rate</th><th>Amount</th><th>Group</th><th>State</th><th>State Head</th>
-</tr></thead><tbody id="dataBody"></tbody></table></div>
-<div class="note" id="tableNote"></div></section>
-</main>
-<script src="script.js"></script>
-<div id="invoiceModal" class="modal"></div></body>
+      <section class="card">
+        <div class="section-head"><h2>Party Outstanding</h2><button class="ghost" data-drill="outstanding">Open Full Report</button></div>
+        <div class="table-wrap"><table id="partyTable"><thead><tr><th>Party</th><th>State</th><th>State Head</th><th>Sales</th><th>Collection</th><th>Outstanding</th><th>90+ Days</th></tr></thead><tbody></tbody></table></div>
+      </section>
+
+      <section class="card">
+        <div class="section-head"><h2>Recent Transactions</h2><span id="transactionCount"></span></div>
+        <div class="table-wrap"><table id="recentTable"><thead><tr><th>Date</th><th>Type</th><th>Party</th><th>Document</th><th>Debit</th><th>Credit</th><th>Balance Effect</th></tr></thead><tbody></tbody></table></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-head"><h2 id="modalTitle">Report</h2><button id="closeModal">×</button></div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
 </html>
